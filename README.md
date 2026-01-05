@@ -58,6 +58,13 @@ Then open http://localhost:3000.
 
 > Note: The app relies on real SSH/SFTP servers. Provide reachable hosts plus valid credentials or keys. All features operate against the live server—no mocks or fakes are used.
 
+ codex/build-terminal-emulator-with-xterm.js
+## GitHub Pages / static hosting
+- The `/public` folder is fully static and now uses the Socket.IO CDN. You can publish it directly with GitHub Pages.
+- Host the Node.js gateway (this repo’s `server.js`) somewhere reachable over HTTPS/WSS. In the UI set **Gateway URL** and **Socket path** to that deployment; the values persist in `localStorage` and will be used after reload.
+- Alternatively, define `window.XTERM_GATEWAY` and `window.XTERM_SOCKET_PATH` via an inline script before `app.js` when serving from Pages to hardcode your backend endpoint.
+
+main
 ## Keyboard shortcuts
 - **Ctrl+Shift+T**: open a new tab
 - **Ctrl+Shift+W**: close current tab
