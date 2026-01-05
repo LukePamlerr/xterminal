@@ -1,0 +1,29 @@
+body {
+  background-color: #000000;
+  color: #00BFFF;
+  font-family: monospace;
+  margin: 0;
+  padding: 10px;
+}
+
+#terminal-container {
+  height: 80vh;
+  background-color: #000000;
+  border: 1px solid #00BFFF;
+}
+
+#connection-form, #sftp-panel {
+  margin-bottom: 20px;
+}
+
+input, button {
+  background-color: #001F3F;
+  color: #00BFFF;
+  border: 1px solid #00BFFF;
+  padding: 5px;
+}
+
+ul {
+  list-style: none;
+  color: #00BFFF;
+}
