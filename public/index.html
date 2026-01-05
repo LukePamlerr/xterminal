@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTerminal - Secure SSH + SFTP</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">XTerminal</div>
+    <div class="connection-status">
+      <span id="status-indicator" class="status status-disconnected"></span>
+      <span id="status-text">Disconnected</span>
+    </div>
+    <div class="actions">
+      <button id="toggle-theme" class="ghost">Theme</button>
+      <button id="download-log" class="ghost" disabled>Download Log</button>
+      <button id="clear-log" class="ghost" disabled>Clear Log</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel connection-panel">
+      <h2>Secure Connection</h2>
+      <div class="form-grid">
+        <label>Gateway URL<input id="gateway" value="" placeholder="https://your-backend.example.com"></label>
+        <label>Socket path<input id="socketPath" value="/socket.io" placeholder="/socket.io"></label>
+        <label>Host<input id="host" value="127.0.0.1" placeholder="example.com"></label>
+        <label>Port<input id="port" type="number" value="22"></label>
+        <label>User<input id="username" placeholder="ubuntu"></label>
+        <label>Password<input id="password" type="password" placeholder="••••••"></label>
+        <label>Private Key<textarea id="privateKey" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea></label>
+        <label>Passphrase<input id="passphrase" type="password" placeholder="Optional"></label>
+        <label>Keepalive (ms)<input id="keepAliveInterval" type="number" value="15000"></label>
+        <label>Auto reconnect<input id="autoReconnect" type="checkbox" checked></label>
+      </div>
+      <div class="profile-row">
+        <button id="connect-btn">Connect</button>
+        <button id="disconnect-btn" class="ghost" disabled>Disconnect</button>
+        <button id="save-profile" class="ghost">Save Profile</button>
+        <select id="profiles"></select>
+        <button id="load-profile" class="ghost">Load</button>
+        <button id="delete-profile" class="ghost">Delete</button>
+      </div>
+      <div class="quick-commands">
+        <button data-cmd="ls -la\n">ls -la</button>
+        <button data-cmd="whoami\n">whoami</button>
+        <button data-cmd="sudo -s\n">sudo -s</button>
+        <button data-cmd="htop\n">htop</button>
+        <button data-cmd="journalctl -xe\n">journalctl -xe</button>
+      </div>
+    </section>
+
+    <section class="panel terminal-panel">
+      <div class="tab-bar" id="tab-bar">
+        <button id="new-tab">+ New Tab</button>
+      </div>
+      <div class="terminal-toolbar">
+        <button id="copy-selection">Copy</button>
+        <button id="paste-clipboard">Paste</button>
+        <button id="clear-terminal">Clear</button>
+        <button id="fullscreen">Fullscreen</button>
+        <button id="search-terminal">Search</button>
+        <button id="font-plus">A+</button>
+        <button id="font-minus">A-</button>
+        <label class="switch">Wrap<input id="wrap-toggle" type="checkbox" checked><span></span></label>
+        <label class="switch">Blink<input id="cursor-toggle" type="checkbox" checked><span></span></label>
+        <label class="switch">Bell<input id="bell-toggle" type="checkbox" checked><span></span></label>
+      </div>
+      <div id="terminal-area"></div>
+      <div class="shortcut-hint">Shortcuts: Ctrl+Shift+T (new tab), Ctrl+Shift+W (close tab), Ctrl+F (find), Ctrl+Shift+L (download log)</div>
+    </section>
+
+    <section class="panel sftp-panel">
+      <h2>SFTP File Manager</h2>
+      <div class="sftp-toolbar">
+        <input id="sftp-dir" value="/" placeholder="/home/user">
+        <button id="refresh-sftp">Refresh</button>
+        <button id="nav-home">Home</button>
+        <button id="nav-root">Root</button>
+        <button id="nav-up">Up</button>
+      </div>
+      <div class="sftp-actions">
+        <label>New Folder<input id="mkdir-path" placeholder="/tmp/new-folder"></label>
+        <button id="mkdir-btn">Create</button>
+        <label>Rename From<input id="rename-from" placeholder="/tmp/a.txt"></label>
+        <label>Rename To<input id="rename-to" placeholder="/tmp/b.txt"></label>
+        <button id="rename-btn">Rename</button>
+        <label>Delete<input id="delete-path" placeholder="/tmp/a.txt"></label>
+        <button id="delete-btn">Delete</button>
+      </div>
+      <div class="sftp-upload">
+        <label>Upload to<input id="upload-remote" value="/tmp/upload.bin"></label>
+        <input id="upload-file" type="file">
+        <button id="upload-btn">Upload</button>
+      </div>
+      <div class="sftp-download">
+        <label>Download<input id="download-remote" placeholder="/tmp/file.txt"></label>
+        <button id="download-btn">Download</button>
+      </div>
+      <div class="sftp-preview">
+        <label>Preview<input id="preview-remote" placeholder="/etc/os-release"></label>
+        <button id="preview-btn">Preview</button>
+      </div>
+      <div id="sftp-progress"></div>
+      <div id="sftp-list" class="sftp-list"></div>
+      <pre id="preview-pane" class="preview-pane"></pre>
+    </section>
+  </main>
+
+  <section class="panel activity-panel">
+    <h2>Activity & Metrics</h2>
+    <div class="metrics">
+      <div>Last activity: <span id="last-activity">never</span></div>
+      <div>Active tabs: <span id="tab-count">0</span></div>
+      <div>Transfer status: <span id="transfer-status">idle</span></div>
+    </div>
+    <div id="notifications" class="notifications"></div>
+  </section>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2JVEZ0Gi4ZTSdKCbFf8gDuwZQzQpimeISFRCGDpa2BkLomqKgJo0vvArk2n0D0zl" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-attach/lib/xterm-addon-attach.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-search/lib/xterm-addon-search.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links/lib/xterm-addon-web-links.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
