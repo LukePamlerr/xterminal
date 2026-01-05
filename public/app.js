@@ -3,6 +3,7 @@ const gatewayDefaults = {
   path: window.XTERM_SOCKET_PATH || localStorage.getItem('socketPath') || '/socket.io'
 };
 let socket;
+const socket = io();
 const sessions = new Map();
 let activeSessionId = null;
 let autoReconnect = true;
@@ -62,9 +63,11 @@ const elements = {
   saveProfile: document.getElementById('save-profile'),
 };
 
+
 // seed gateway inputs for static hosting (e.g., GitHub Pages)
 document.getElementById('gateway').value = gatewayDefaults.url;
 document.getElementById('socketPath').value = gatewayDefaults.path;
+
 
 function setStatus(state, text) {
   elements.statusIndicator.className = `status status-${state}`;
@@ -84,6 +87,7 @@ function updateMetrics() {
   elements.lastActivity.textContent = lastActivity ? new Date(lastActivity).toLocaleTimeString() : 'never';
 }
 
+
 function resolveGateway() {
   const url = (elements.gateway.value || gatewayDefaults.url || window.location.origin).trim();
   const path = (elements.socketPath.value || gatewayDefaults.path || '/socket.io').trim() || '/socket.io';
@@ -102,6 +106,7 @@ function initSocket() {
   bindSocketEvents(socket);
   addNotification(`Gateway set to ${url}${path}`);
 }
+
 
 function createTerminal(sessionId) {
   const term = new Terminal({
@@ -458,6 +463,7 @@ function bindUi() {
   setupDragUpload();
 }
 
+
 function bindSocketEvents(sock) {
   sock.on('ssh_ready', () => {
     setStatus('connected', 'SSH ready');
@@ -489,7 +495,7 @@ function bindSocketEvents(sock) {
 
   sock.on('error_message', (msg) => addNotification(`Error: ${msg}`));
 
-  sock.on('disconnected', () => {
+ sock.on('disconnected', () => {
     setStatus('disconnected', 'Disconnected');
     if (autoReconnect) setTimeout(connectSSH, 3000);
   });
@@ -527,6 +533,76 @@ function bindSocketEvents(sock) {
     elements.previewPane.textContent = `${remotePath}\n\n${content}`;
   });
 }
+
+// socket events
+socket.on('ssh_ready', () => {
+  setStatus('connected', 'SSH ready');
+  elements.connectBtn.disabled = true;
+  elements.disconnectBtn.disabled = false;
+  elements.downloadLog.disabled = false;
+  elements.clearLog.disabled = false;
+  addNotification('SSH connection established');
+  addTab('shell');
+  refreshSftp('/');
+});
+
+socket.on('sftp_ready', () => addNotification('SFTP channel ready'));
+
+socket.on('data', ({ sessionId, data }) => {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  session.term.write(data);
+  session.log += data;
+  globalLog += data;
+  lastActivity = Date.now();
+  updateMetrics();
+});
+
+socket.on('session_closed', (sessionId) => {
+  addNotification(`Session ${sessionId} closed`);
+  closeTab(sessionId);
+});
+
+socket.on('error_message', (msg) => addNotification(`Error: ${msg}`));
+
+socket.on('disconnected', () => {
+  setStatus('disconnected', 'Disconnected');
+  if (autoReconnect) setTimeout(connectSSH, 3000);
+});
+
+socket.on('sftp_files', (files) => renderSftpList(files));
+
+socket.on('sftp_mkdir_success', (dir) => { addNotification(`Created ${dir}`); refreshSftp(dir); });
+socket.on('sftp_delete_success', (remotePath) => { addNotification(`Deleted ${remotePath}`); refreshSftp(); });
+socket.on('sftp_rename_success', ({ from, to }) => { addNotification(`Renamed ${from} -> ${to}`); refreshSftp(); });
+socket.on('sftp_progress', ({ type, transferred, total, remotePath }) => {
+  elements.transferStatus.textContent = `${type} ${Math.round((transferred / total) * 100)}% for ${remotePath}`;
+  elements.sftpProgress.textContent = `${type} ${transferred}/${total}`;
+});
+
+socket.on('sftp_upload_success', (remotePath) => {
+  addNotification(`Uploaded ${remotePath}`);
+  elements.transferStatus.textContent = 'idle';
+  elements.sftpProgress.textContent = '';
+  refreshSftp();
+});
+
+socket.on('sftp_download_success', ({ remotePath, data }) => {
+  addNotification(`Downloaded ${remotePath}`);
+  const blob = new Blob([new Uint8Array(data)], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = remotePath.split('/').pop();
+  link.click();
+  URL.revokeObjectURL(url);
+  elements.transferStatus.textContent = 'idle';
+});
+
+socket.on('sftp_preview_data', ({ remotePath, content }) => {
+  elements.previewPane.textContent = `${remotePath}\n\n${content}`;
+});
+
 
 bindUi();
 loadProfiles();

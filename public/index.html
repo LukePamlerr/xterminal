@@ -25,6 +25,7 @@
     <section class="panel connection-panel">
       <h2>Secure Connection</h2>
       <div class="form-grid">
+
         <label>Gateway URL<input id="gateway" value="" placeholder="https://your-backend.example.com"></label>
         <label>Socket path<input id="socketPath" value="/socket.io" placeholder="/socket.io"></label>
         <label>Host<input id="host" value="127.0.0.1" placeholder="example.com"></label>
@@ -120,7 +121,9 @@
     <div id="notifications" class="notifications"></div>
   </section>
 
+
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2JVEZ0Gi4ZTSdKCbFf8gDuwZQzQpimeISFRCGDpa2BkLomqKgJo0vvArk2n0D0zl" crossorigin="anonymous"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-attach/lib/xterm-addon-attach.js"></script>
